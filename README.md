@@ -26,6 +26,8 @@ https://youtu.be/yyRQYroEMno
 1. Assign your TURN server's username and credential in login-and-control.js as well as the IP of the server hosting the Switch Streaming and WebSocket Port opened previously.
 2. Add the STUN and TURN servers you have in the STUN_SERVER and TURN_SERVER constants in the same file.
 
+You may need to change some elements of the GStreamer pipelines in server/main.go based on your configuration.
+
 ## Runtime
 ### Server
 1. Turn on the Nintendo Switch, and go to home menu
