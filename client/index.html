@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="ISO-8859-1" />
+    <title>Switch Streaming Application</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <link href="index.css" rel="stylesheet" />
+    <script src="gamepad.js"></script>
+    <script src="https://requirejs.org/docs/release/2.3.6/minified/require.js"></script>
+</head>
+
+<body>
+    <div id="content" class="form-signin">
+        <h1 id="title" class="h3 mb-3 fw-bold">Switch Streaming Application</h1>
+        <img class="mb-4" src="icon.png" />
+        <h1 class="h5 mb-3 fw-normal">Establish Connection</h1>
+        <div class="form-floating">
+            <input class="form-control" type="text" id="server" name="server" placeholder="192.168.1.X">
+            <label for="server">Server IP:</label>
+        </div>
+        <div class="form-floating">
+            <input class="form-control" type="number" id="port" name="port" placeholder="13370">
+            <label for="port">WebSocket Port:</label>
+        </div>
+        <div class="form-floating">
+            <input class="form-control" type="text" id="username" name="username" placeholder="guest">
+            <label for="server">TURN Username:</label>
+        </div>
+        <div class="form-floating">
+            <input class="form-control" type="password" id="credential" name="credential" placeholder="somepassword">
+            <label for="server">TURN Credential:</label>
+        </div>
+
+        <br>
+
+        <button class="w-100 btn btn-lg btn-primary" onClick="initializeWebRTCAndController()">Connect</button>
+    </div>
+    <script type="text/javascript" src="login-and-control.js"></script>
+</body>
+
+</html>

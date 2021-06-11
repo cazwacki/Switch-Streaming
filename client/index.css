@@ -1,0 +1,42 @@
+body {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #2d2d2d;
+    color: #e5ebe7;
+}
+
+img {
+    display: flex;
+    vertical-align: middle;
+    margin: auto;
+    width: 256px;
+    height: 256px;
+}
+
+.form-signin {
+    padding: 15px;
+    margin: auto;
+}
+
+.form-signin .checkbox {
+    font-weight: 400;
+}
+
+.form-signin .form-floating:focus-within {
+    z-index: 2;
+}
+
+.form-control {
+    background-color: #6A6B6B;
+    border-color: #4A4B4B;
+    color: #e5ebe7
+}
+
+.form-control:focus-within {
+    background-color: #6A6B6B;
+    border-color: #4A4B4B;
+    color: #e5ebe7
+}
