@@ -1,10 +1,10 @@
 // defaults for your connection
-const DEFAULT_USERNAME = "<TURN username>"
-const DEFAULT_CREDENTIAL = "<TURN credential>"
-const DEFAULT_SERVER = "<server / ip address>"
+const DEFAULT_USERNAME = "username"
+const DEFAULT_CREDENTIAL = "password"
+const DEFAULT_SERVER = "127.0.0.1"
 const DEFAULT_PORT = 13370
-const STUN_SERVER = "stun:<domain name>:5349"
-const TURN_SERVER = "turn:<domain name>:5349"
+const STUN_SERVER = "stun server ip:port"
+const TURN_SERVER = "turn server ip:port"
 
 // set defaults for entries
 document.getElementById("username").value = DEFAULT_USERNAME;
@@ -12,151 +12,68 @@ document.getElementById("credential").value = DEFAULT_CREDENTIAL;
 document.getElementById("server").value = DEFAULT_SERVER;
 document.getElementById("port").value = DEFAULT_PORT;
 
-// Attach it to the window so it can be inspected at the console.
-window.gamepad = new Gamepad();
-let mode = "login"
+// set up gamepad behaviors
+let gamepads = navigator.getGamepads()
+let prev_gamepads = []
+let socket = null;
+let trigger_threshold = 0.85
+let magnitudes = [0, 0, 0, 0]
+let triggers = [0, 0]
 
-if (!gamepad.init()) {
-    alert('Your browser does not support gamepads, get the latest Google Chrome or Firefox.');
+window.addEventListener("gamepadconnected", function (e) {
+    console.log("Gamepad connected: %s. %d buttons, %d axes.",
+        e.gamepad.id,
+        e.gamepad.buttons.length, e.gamepad.axes.length);
+    let gamepad_index = e.gamepad.id + e.gamepad.index
+    gamepads[gamepad_index] = e.gamepad
+    prev_gamepads[gamepad_index] = gamepads[gamepad_index]
+});
+
+window.addEventListener("gamepaddisconnected", function (e) {
+    console.log("Gamepad disconnected: %s. %d buttons, %d axes.",
+        e.gamepad.id,
+        e.gamepad.buttons.length, e.gamepad.axes.length);
+    let gamepad_index = e.gamepad.id + e.gamepad.index
+    delete gamepads[gamepad_index]
+    delete prev_gamepads[gamepad_index]
+});
+
+setInterval(detectAndSend, 20);
+
+// function controller input loop
+function detectAndSend() {
+    gamepads = navigator.getGamepads()
+    for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i] && prev_gamepads[i] && !equivalentInputStates(gamepads[i], prev_gamepads[i])) {
+            // convert input information to bits and send
+            if (socket) {
+                sendNewState(gamepads[i], prev_gamepads[i])
+            }
+            logNewState(gamepads[i], prev_gamepads[i])
+            break;
+        }
+    }
+    prev_gamepads = navigator.getGamepads()
 }
 
 // upon clicking "connect", this executes.
-function initializeWebRTCAndController() {
-    let throttle = 64; // ms between input sends
-    let next_scan = Date.now() + throttle;
-
+function initializeWebRTC() {
     const username = document.getElementById("username").value;
     const credential = document.getElementById("credential").value;
     const serverIP = document.getElementById("server").value;
     const wsPort = document.getElementById("port").value;
-    let socket = null;
 
-    let currentController = null;
-    document.getElementById("content").innerHTML = '<h1 id="title" class="h3 mb-3 fw-bold">Switch Streaming Application</h1><h1 id="controller" class="h5 mb-3">Controller Used: None (Please connect a controller and press an input.)</h1><div id="remoteVideos"></div>';
-    //<h3>Logs</h3><div id="logs"></div> <-- add this somewhere in the innerHTML if you want some basic logging.
-
-    let dict = {}; // dictionary to track button inputs shorter than 64ms
-    let gamepadPrev = null;
-
-    gamepad.bind(Gamepad.Event.CONNECTED, function(device) {
-        if (currentController == null) {
-            currentController = device;
-            document.getElementById("controller").innerHTML = 'Controller Used: ' + device.index + ': ' + device.id;
-        }
-    });
-
-    gamepad.bind(Gamepad.Event.DISCONNECTED, function(device) {
-        if (currentController != null) {
-            if (device.index == currentController.index && device.id == currentController.id) {
-                currentController = null;
-                document.getElementById("controller").innerHTML = 'Controller Used: None (Please connect a controller and press an input.)'
-            }
-        }
-    });
-
-    gamepad.bind(Gamepad.Event.TICK, function(gamepads) {
-        deliver = false
-        if (Date.now() > next_scan) {
-            deliver = true
-        }
-        // gamepad disconnected
-        var gamepad,
-            wrap,
-            control,
-            value,
-            i,
-            j;
-        if (currentController != null) {
-            for (i = 0; i < gamepads.length; i++) {
-                gamepad = gamepads[i]
-                if (gamepad.id == currentController.id && gamepad.index == currentController.index) {
-                    if (gamepadPrev) {
-                        if (gamepad) {
-                            let index = 0
-                            for (control in gamepad.state) {
-                                value = gamepad.state[control];
-                                if (gamepadPrev.state[control] != value && typeof value == 'number') {
-                                    if (index == 6 || index == 7 || index > 16) {
-                                        // axis: just store whatever the most recent value is.
-                                        dict[index] = value
-                                    } else {
-                                        // button: check previous state and react.
-                                        if (dict[index] == null) {
-                                            if (value == 1) {
-                                                dict[index] = Date.now()
-                                            } else {
-                                                dict[index] = value
-                                            }
-                                        } else {
-                                            if (dict[index] > 64) { // meaning it does not store a net time
-                                                // button was pressed, and now it's released!
-                                                dict[index] = Date.now() - dict[index]
-                                            }
-                                            // ignore it otherwise... a 3 inputs in 64 ms is possible but almost never happens
-                                        }
-                                    }
-                                }
-                                index++
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        gamepadPrev = gamepad
-        if (deliver) {
-            let resultString = ''
-            let result = new ArrayBuffer(2 * Object.keys(dict).length)
-            let uint8Array = new Uint8Array(result)
-            let index = 0
-            for (let [button_num, value] of Object.entries(dict)) {
-                // create byte response
-                // code: 5 bits: button number
-                //       1 bit: was button release between ticks?
-                //       4 bits: how long was button held down? (ms * 4) (ignore if previous bit is 0, else ignore everything following)
-                //       1 bit: was the value delivered negative?
-                //       5 bits: what is the magnitude of the value? 
-                resultString += (button_num >>> 0).toString(2).padStart(5, '0') // 5 bits to determine control
-
-                if (value > 1 && value < 64) { // button was held and released between sends
-                    resultString += "1" + (Math.trunc(value / 4)).toString(2).padStart(4, '0')
-                    resultString += "0" + "00000" // don't care about the rest
-                } else {
-                    if (value > 64) {
-                        value = 1
-                    }
-                    resultString += "0" + "0000" // don't care about the first part
-                    if (value < 0) {
-                        resultString += "1"
-                        value *= -1
-                    } else {
-                        resultString += "0"
-                    }
-                    value = Math.trunc(value * 31)
-                    resultString += (value >>> 0).toString(2).padStart(5, '0')
-                }
-                // convert into byte data
-                uint8Array[index] = parseInt(resultString.substring(8 * index, 8 * (index + 1)), 2)
-                uint8Array[index + 1] = parseInt(resultString.substring(8 * (index + 1), 8 * (index + 2)), 2)
-                index += 2
-            }
-            if (uint8Array.length != 0) {
-                socket.send(result)
-                dict = {}
-                next_scan = next_scan + throttle
-            }
-        }
-    });
+    document.getElementById("content").innerHTML = '<h1 id="title" class="h3 mb-3 fw-bold">Switch Streaming Application</h1><div id="remoteVideos"></div>';
 
     const pc = new RTCPeerConnection({
         iceServers: [{
-                urls: STUN_SERVER,
-            },
-            {
-                urls: TURN_SERVER,
-                username: username,
-                credential: credential,
-            },
+            urls: STUN_SERVER,
+        },
+        {
+            urls: TURN_SERVER,
+            username: username,
+            credential: credential,
+        },
         ],
     });
     const log = (msg) => {
@@ -175,13 +92,14 @@ function initializeWebRTCAndController() {
     pc.onicecandidate = (event) => {
         if (event.candidate === null) {
             socket = new WebSocket("ws://" + serverIP + ":" + wsPort + "/ws");
+            socket.binaryType = "arraybuffer";
 
-            socket.onopen = function(e) {
+            socket.onopen = function (e) {
                 log("connected to remote websocket");
                 socket.send(btoa(JSON.stringify(pc.localDescription))); // first message should be the base64
             };
 
-            socket.onmessage = function(e) {
+            socket.onmessage = function (e) {
                 // only message should be the response
                 try {
                     pc.setRemoteDescription(
@@ -192,7 +110,7 @@ function initializeWebRTCAndController() {
                 }
             };
 
-            socket.onclose = function(e) {
+            socket.onclose = function (e) {
                 alert("Remote WebSocket connection closed");
             };
         }
@@ -208,4 +126,70 @@ function initializeWebRTCAndController() {
     pc.createOffer()
         .then((d) => pc.setLocalDescription(d))
         .catch(log);
+}
+
+function equivalentInputStates(gamepad1, gamepad2) {
+    return false
+}
+
+/**
+ * 1 bit: axis or button
+ * 5 bits: determine button, 1 bit: pressed or released
+ * 2 bits: determine axis, 4 bits: determine magnitude (15 is plenty lol)
+ */
+const BUTTON = 0b0000000
+const AXIS = 0b1000000
+const AXIS_INDEX = function (i) { return i << 4 }
+const BUTTON_INDEX = function (i) { return i << 1 }
+const MAGNITUDE = function (m) { return Math.floor((m + 1) * 7.5) }
+
+function sendNewState(gamepad1, gamepad2) {
+    // send axes data
+    for (let i = 0; i < gamepad1.axes.length; i++) {
+        if (gamepad1.axes[i] != gamepad2.axes[i] && MAGNITUDE(gamepad1.axes[i]) != magnitudes[i]) {
+            magnitudes[i] = MAGNITUDE(gamepad1.axes[i])
+            let message_container = new Uint8Array(1);
+            message_container[0] = AXIS | AXIS_INDEX(i) | magnitudes[i]
+            socket.send(message_container.buffer)
+        }
+    }
+    // send button data
+    for (let i = 0; i < gamepad1.buttons.length; i++) {
+        if (gamepad1.buttons[i].value != gamepad2.buttons[i].value) {
+            let button_value = gamepad1.buttons[i].value > trigger_threshold ? 1 : 0
+            if (i >= 6 && i <= 7) {
+                if (triggers[6 - i] == button_value) {
+                    continue;
+                } else {
+                    triggers[6 - i] = button_value
+                }
+            }
+            let message_container = new Uint8Array(1);
+            message_container[0] = BUTTON | BUTTON_INDEX(i) | button_value
+            socket.send(message_container.buffer)
+        }
+    }
+}
+
+// debug version for above
+function logNewState(gamepad1, gamepad2) {
+    // send axes data
+    for (let i = 0; i < gamepad1.axes.length; i++) {
+        if (gamepad1.axes[i] != gamepad2.axes[i]) {
+            console.log("Axis %d: %f", i, gamepad1.axes[i])
+            let message_container = new Uint8Array(1);
+            message_container[0] = AXIS | AXIS_INDEX(i) | magnitudes[i]
+            console.log(message_container.buffer)
+        }
+    }
+    // send button data
+    for (let i = 0; i < gamepad1.buttons.length; i++) {
+        if (gamepad1.buttons[i].value != gamepad2.buttons[i].value) {
+            let button_value = gamepad1.buttons[i].value > trigger_threshold ? 1 : 0
+            console.log(i + ": " + button_value)
+            let message_container = new Uint8Array(1);
+            message_container[0] = BUTTON | BUTTON_INDEX(i) | button_value
+            console.log(message_container.buffer)
+        }
+    }
 }
