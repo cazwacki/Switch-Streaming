@@ -8,12 +8,15 @@ body {
     color: #e5ebe7;
 }
 
+#logo {
+    width: 256px;
+    height: 256px;
+}
+
 img {
     display: flex;
     vertical-align: middle;
     margin: auto;
-    width: 256px;
-    height: 256px;
 }
 
 .form-signin {
@@ -39,4 +42,162 @@ img {
     background-color: #6A6B6B;
     border-color: #4A4B4B;
     color: #e5ebe7
+}
+
+#gameplay {
+    white-space: nowrap;
+}
+
+.joycon {
+    position: relative;
+    max-height: 720px;
+    height: 85vh;
+}
+
+.back-button span,
+.trigger span {
+    font-size: calc(0.75vw + 0.75vh + .5vmin);
+    font-weight: bold;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.back-button {
+    background-color: black;
+    position: absolute;
+    width: 30%;
+    height: 10%;
+    top: 10%;
+    transform: translate(-50%, -50%);
+}
+
+#left-button {
+    left: -5%;
+}
+
+#right-button {
+    left: 105%;
+}
+
+.trigger {
+    background-color: black;
+    position: absolute;
+    width: 30%;
+    height: 20%;
+    top: 30%;
+    transform: translate(-50%, -50%);
+}
+
+#left-trigger {
+    left: -5%;
+}
+
+#right-trigger {
+    left: 105%;
+}
+
+.stick {
+    position: absolute;
+    height: 12vh;
+}
+
+#left-stick {
+    top: 25%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#right-stick {
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.button {
+    position: absolute;
+    height: 5.5vh;
+}
+
+#dpad-up {
+    top: 47.5%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#dpad-down {
+    top: 62.5%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#dpad-left {
+    top: 55%;
+    left: 25%;
+    transform: translate(-50%, -50%);
+}
+
+#dpad-right {
+    top: 55%;
+    left: 75%;
+    transform: translate(-50%, -50%);
+}
+
+#a {
+    top: 25%;
+    left: 75%;
+    transform: translate(-50%, -50%);
+}
+
+#b {
+    top: 32.5%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#x {
+    top: 17.5%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#y {
+    top: 25%;
+    left: 25%;
+    transform: translate(-50%, -50%);
+}
+
+.smaller-button {
+    position: absolute;
+    height: 4.5vh;
+}
+
+#capture {
+    top: 75%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+}
+
+#home {
+    top: 75%;
+    left: 30%;
+    transform: translate(-50%, -50%);
+}
+
+.top-button {
+    position: absolute;
+    width: 4vh;
+}
+
+#plus {
+    top: 8%;
+    left: 15%;
+    transform: translate(-50%, -50%);
+}
+
+#minus {
+    top: 8%;
+    left: 85%;
+    transform: translate(-50%, -50%);
 }

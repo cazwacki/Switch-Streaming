@@ -17,8 +17,31 @@ let gamepads = navigator.getGamepads()
 let prev_gamepads = []
 let socket = null;
 let trigger_threshold = 0.85
-let magnitudes = [0, 0, 0, 0]
+let magnitudes = [7, 7, 7, 7]
 let triggers = [0, 0]
+
+// get elements that will be modified
+let left_stick = document.getElementById("left-stick");
+let right_stick = document.getElementById("right-stick");
+let client_buttons = [
+    document.getElementById("a"),
+    document.getElementById("b"),
+    document.getElementById("x"),
+    document.getElementById("y"),
+    document.getElementById("left-button"),
+    document.getElementById("right-button"),
+    document.getElementById("left-trigger"),
+    document.getElementById("right-trigger"),
+    document.getElementById("minus"),
+    document.getElementById("plus"),
+    document.getElementById("left-stick"),
+    document.getElementById("right-stick"),
+    document.getElementById("dpad-up"),
+    document.getElementById("dpad-down"),
+    document.getElementById("dpad-left"),
+    document.getElementById("dpad-right"),
+    document.getElementById("home"),
+]
 
 window.addEventListener("gamepadconnected", function (e) {
     console.log("Gamepad connected: %s. %d buttons, %d axes.",
@@ -64,6 +87,8 @@ function initializeWebRTC() {
     const wsPort = document.getElementById("port").value;
 
     document.getElementById("content").innerHTML = '<h1 id="title" class="h3 mb-3 fw-bold">Switch Streaming Application</h1><div id="remoteVideos"></div>';
+    document.getElementById("content").classList.add('d-none');
+    document.getElementById("gameplay").classList.remove('d-none');
 
     const pc = new RTCPeerConnection({
         iceServers: [{
@@ -85,7 +110,9 @@ function initializeWebRTC() {
         el.srcObject = event.streams[0];
         el.autoplay = true;
         el.controls = false;
-        document.getElementById("remoteVideos").appendChild(el);
+        el.style = "display: inline-block; max-height: 720px; height: 85vh";
+
+        document.getElementById("video").appendChild(el);
     };
 
     pc.oniceconnectionstatechange = (e) => log(pc.iceConnectionState);
@@ -144,16 +171,37 @@ const BUTTON_INDEX = function (i) { return i << 1 }
 const MAGNITUDE = function (m) { return Math.floor((m + 1) * 7.5) }
 
 function sendNewState(gamepad1, gamepad2) {
-    // send axes data
     for (let i = 0; i < gamepad1.axes.length; i++) {
         if (gamepad1.axes[i] != gamepad2.axes[i] && MAGNITUDE(gamepad1.axes[i]) != magnitudes[i]) {
             magnitudes[i] = MAGNITUDE(gamepad1.axes[i])
+            // send axes data
             let message_container = new Uint8Array(1);
             message_container[0] = AXIS | AXIS_INDEX(i) | magnitudes[i]
             socket.send(message_container.buffer)
         }
     }
-    // send button data
+
+    // update client joycon sticks
+    if (magnitudes[0] == 7 && magnitudes[1] == 7) {
+        left_stick.style.filter = "invert(0)";
+        left_stick.style.top = "25%";
+        left_stick.style.left = "50%";
+    } else {
+        left_stick.style.filter = "invert(1)";
+        left_stick.style.top = ((magnitudes[1] - 7) * 0.5 + 25).toString() + "%";
+        left_stick.style.left = ((magnitudes[0] - 7) * 1.3 + 50).toString() + "%";
+    }
+
+    if (magnitudes[2] == 7 && magnitudes[3] == 7) {
+        right_stick.style.filter = "invert(0)";
+        right_stick.style.top = "55%";
+        right_stick.style.left = "50%";
+    } else {
+        right_stick.style.filter = "invert(1)";
+        right_stick.style.top = ((magnitudes[3] - 7) * 0.5 + 55).toString() + "%";
+        right_stick.style.left = ((magnitudes[2] - 7) * 1.3 + 50).toString() + "%";
+    }
+
     for (let i = 0; i < gamepad1.buttons.length; i++) {
         if (gamepad1.buttons[i].value != gamepad2.buttons[i].value) {
             let button_value = gamepad1.buttons[i].value > trigger_threshold ? 1 : 0
@@ -164,9 +212,29 @@ function sendNewState(gamepad1, gamepad2) {
                     triggers[6 - i] = button_value
                 }
             }
+            // send button data
             let message_container = new Uint8Array(1);
             message_container[0] = BUTTON | BUTTON_INDEX(i) | button_value
             socket.send(message_container.buffer)
+
+            // update client buttons
+            if (client_buttons[i] != null) {
+                if (i != 6 && i != 7) {
+                    if (button_value > 0) {
+                        client_buttons[i].style.filter = "invert(1)";
+                    } else {
+                        client_buttons[i].style.filter = "invert(0)";
+                    }
+                } else {
+                    if (button_value > 0) {
+                        client_buttons[i].style.backgroundColor = "white";
+                        client_buttons[i].style.color = "black";
+                    } else {
+                        client_buttons[i].style.backgroundColor = "black";
+                        client_buttons[i].style.color = "white";
+                    }
+                }
+            }
         }
     }
 }
@@ -175,8 +243,8 @@ function sendNewState(gamepad1, gamepad2) {
 function logNewState(gamepad1, gamepad2) {
     // send axes data
     for (let i = 0; i < gamepad1.axes.length; i++) {
-        if (gamepad1.axes[i] != gamepad2.axes[i]) {
-            console.log("Axis %d: %f", i, gamepad1.axes[i])
+        if (gamepad1.axes[i] != gamepad2.axes[i] && MAGNITUDE(gamepad1.axes[i]) != MAGNITUDE(gamepad2.axes[i])) {
+            console.log("Axis %d: %f", i, MAGNITUDE(gamepad1.axes[i]))
             let message_container = new Uint8Array(1);
             message_container[0] = AXIS | AXIS_INDEX(i) | magnitudes[i]
             console.log(message_container.buffer)

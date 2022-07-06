@@ -13,7 +13,7 @@
 <body>
     <div id="content" class="form-signin">
         <h1 id="title" class="h3 mb-3 fw-bold">Switch Streaming Application</h1>
-        <img class="mb-4" src="icon.png" />
+        <img id="logo" class="mb-4" src="icon.png" />
         <h1 class="h5 mb-3 fw-normal">Establish Connection</h1>
         <div class="form-floating">
             <input class="form-control" type="text" id="server" name="server" placeholder="192.168.1.X">
@@ -36,7 +36,44 @@
 
         <button class="w-100 btn btn-lg btn-primary" onClick="initializeWebRTC()">Connect</button>
     </div>
-    <script type="text/javascript" src="login-and-control.js"></script>
+    <div id="gameplay" class="d-none form-signin">
+        <h1 id="title" class="h3 mb-3 fw-bold">Switch Streaming Application</h1>
+        <div class="float-left d-inline-block position-relative">
+            <img class="joycon" src="./left_joycon/joycon.png">
+            <img id="minus" class="top-button" src="./left_joycon/minus.png">
+            <img id="left-stick" class="stick" src="./left_joycon/stick.png">
+            <img id="dpad-up" class="button" src="./left_joycon/dpad_up.png">
+            <img id="dpad-down" class="button" src="./left_joycon/dpad_down.png">
+            <img id="dpad-left" class="button" src="./left_joycon/dpad_left.png">
+            <img id="dpad-right" class="button" src="./left_joycon/dpad_right.png">
+            <img id="capture" class="smaller-button" src="./left_joycon/capture.png">
+            <div id="left-button" class="back-button">
+                <span class="m-auto">LB</span>
+            </div>
+            <div id="left-trigger" class="trigger">
+                <span>LT</span>
+            </div>
+        </div>
+        <div id="video" class="d-inline-block">
+
+        </div>
+        <div class="float-right d-inline-block position-relative">
+            <img class="joycon" src="./right_joycon/joycon.png">
+            <img id="plus" class="top-button" src="./right_joycon/plus.png">
+            <img id="right-stick" class="stick" src="./right_joycon/stick.png">
+            <img id="a" class="button" src="./right_joycon/a.png">
+            <img id="b" class="button" src="./right_joycon/b.png">
+            <img id="x" class="button" src="./right_joycon/x.png">
+            <img id="y" class="button" src="./right_joycon/y.png">
+            <img id="home" class="button" src="./right_joycon/home.png">
+            <div id="right-button" class="back-button">
+                <span>RB</span>
+            </div>
+            <div id="right-trigger" class="trigger">
+                <span>RT</span>
+            </div>
+        </div>
+        <script type="text/javascript" src="login-and-control.js"></script>
 </body>
 
 </html>
